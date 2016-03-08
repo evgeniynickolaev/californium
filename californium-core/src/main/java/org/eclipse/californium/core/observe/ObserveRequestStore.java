@@ -14,13 +14,12 @@
 package org.eclipse.californium.core.observe;
 
 import org.eclipse.californium.core.coap.Request;
-import org.eclipse.californium.core.coap.Response;
 
 public interface ObserveRequestStore {
 
 	void add(Request request);
 	
-	void remove(Request request);
+	void remove(byte[] token);
 
-	Request get(Response response);
+	Request get(byte[] token);
 }

@@ -367,7 +367,7 @@ public class Matcher {
 
 		Exchange exchange = exchangesByToken.get(idByToken);
 		if (exchange == null && observeRequestStore != null ) {
-			final Request request = observeRequestStore.get(response);
+			final Request request = observeRequestStore.get(response.getToken());
 			if (request != null){
 				request.setDestination(response.getSource());
 				request.setDestinationPort(response.getSourcePort());
@@ -378,7 +378,7 @@ public class Matcher {
 					@Override
 					public void onTimeout() {
 						notificationListener.onTimeout(request);
-						observeRequestStore.remove(request);
+						observeRequestStore.remove(request.getToken());
 					}
 
 					@Override
@@ -394,13 +394,13 @@ public class Matcher {
 					@Override
 					public void onReject() {
 						notificationListener.onReject(request);
-						observeRequestStore.remove(request);
+						observeRequestStore.remove(request.getToken());
 					}
 
 					@Override
 					public void onCancel() {
 						notificationListener.onCancel(request);
-						observeRequestStore.remove(request);
+						observeRequestStore.remove(request.getToken());
 					}
 
 					@Override

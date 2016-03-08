@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.californium.core.coap.Request;
-import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.Exchange.KeyToken;
 import org.eclipse.californium.core.network.serialization.DataParser;
 import org.eclipse.californium.core.network.serialization.Serializer;
@@ -35,8 +34,8 @@ public class InMemoryObserveRequestStore implements ObserveRequestStore {
 	}
 
 	@Override
-	public Request get(Response response) {
-		Request request = map.get(new KeyToken(response.getToken()));
+	public Request get(byte[] token) {
+		Request request = map.get(new KeyToken(token));
 		if (request != null) {
 			RawData serialize = Serializer.serialize(request, null);
 			DataParser parser = new DataParser(serialize.getBytes());
@@ -47,10 +46,10 @@ public class InMemoryObserveRequestStore implements ObserveRequestStore {
 	}
 
 	@Override
-	public void remove(Request request) {
-		map.remove(new KeyToken(request.getToken()));
+	public void remove(byte[] token) {
+		map.remove(new KeyToken(token));
 	}
-	
+
 	public boolean isEmpty(){
 		return map.isEmpty();
 	}
