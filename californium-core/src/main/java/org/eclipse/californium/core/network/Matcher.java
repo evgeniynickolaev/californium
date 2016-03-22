@@ -85,8 +85,8 @@ public class Matcher {
 	private boolean useStrictResponseMatching = false;
 
 	private NotificationListener notificationListener;
-	private ObserveRequestStore observeRequestStore;
-	
+	private final ObserveRequestStore observeRequestStore;
+
 	public Matcher(NetworkConfig config){
 		this(config, null, new InMemoryObserveRequestStore());
 	}	
@@ -174,6 +174,10 @@ public class Matcher {
 		if (request.getToken() == null) {
 			idByToken = createUnusedToken();
 			request.setToken(idByToken.token);
+			// if original request has no token set it too.
+			// this is the case where request and currentRequest is not the same
+			if (exchange.getRequest() != null && exchange.getRequest().getToken() == null)
+				exchange.getRequest().setToken(idByToken.token);
 		} else {
 			idByToken = new KeyToken(request.getToken());
 			// ongoing requests may reuse token
@@ -182,11 +186,23 @@ public class Matcher {
 			}
 		}
 
-		if (!request.getOptions().hasBlock2() && request.getOptions().hasObserve() && request.getOptions().getObserve() == 0) {
+		// for observe request
+		if ( request.getOptions().hasObserve() && request.getOptions().getObserve() == 0 && !request.getOptions().hasBlock2()) {
+			// add request to the store
+			observeRequestStore.add(request);
+			// remove it if the request is cancelled, rejected or timedout
 			request.addMessageObserver(new MessageObserverAdapter() {
 				@Override
-				public void onResponse(Response response) {
-					observeRequestStore.add(request);
+				public void onCancel() {
+					observeRequestStore.remove(request.getToken());
+				}
+				@Override
+				public void onReject() {
+					observeRequestStore.remove(request.getToken());
+				}
+				@Override
+				public void onTimeout() {
+					observeRequestStore.remove(request.getToken());
 				}
 			});
 		}
@@ -600,4 +616,13 @@ public class Matcher {
 			}
 		}
 	}
+
+	public void cancelObserve(byte[] token) {
+		Request observeRequest = observeRequestStore.get(token);
+		if (observeRequest != null) {
+			observeRequestStore.remove(token);
+			notificationListener.onCancel(observeRequest);
+		}
+	}
+
 }

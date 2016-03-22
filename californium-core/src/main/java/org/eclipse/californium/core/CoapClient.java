@@ -23,6 +23,7 @@ package org.eclipse.californium.core;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -35,12 +36,14 @@ import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.CoAP.Type;
 import org.eclipse.californium.core.coap.LinkFormat;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
+import org.eclipse.californium.core.coap.MessageObserver;
 import org.eclipse.californium.core.coap.MessageObserverAdapter;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.EndpointManager;
 import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.observe.NotificationListener;
 
 /**
  * The Class CoapClient.
@@ -846,7 +849,15 @@ public class CoapClient {
 	private CoapObserveRelation observeAndWait(Request request, CoapHandler handler) {
 		Endpoint outEndpoint = getEffectiveEndpoint(request);
 		CoapObserveRelation relation = new CoapObserveRelation(request, outEndpoint);
-		request.addMessageObserver(new ObserveMessageObserverImpl(handler, relation));
+		// add message observer to get the response.
+		ObserveMessageObserverImpl messageObserver = new ObserveMessageObserverImpl(handler, relation);
+		request.addMessageObserver(messageObserver);
+		// add notification listener to all notification
+		NotificationListener notificationListener = new Adapter(messageObserver, request);
+		outEndpoint.addNotificationListener(notificationListener);
+		// messageobserver should remove this listener when the request is cancelled
+		messageObserver.setNotificationListener(notificationListener);
+		relation.setNotificationListener(notificationListener);
 		CoapResponse response = synchronous(request, outEndpoint);
 		if (response == null || !response.advanced().getOptions().hasObserve())
 			relation.setCanceled(true);
@@ -865,7 +876,15 @@ public class CoapClient {
 	private CoapObserveRelation observe(Request request, CoapHandler handler) {
 		Endpoint outEndpoint = getEffectiveEndpoint(request);
 		CoapObserveRelation relation = new CoapObserveRelation(request, outEndpoint);
-		request.addMessageObserver(new ObserveMessageObserverImpl(handler, relation));
+		// add message observer to get the response.
+		ObserveMessageObserverImpl messageObserver = new ObserveMessageObserverImpl(handler, relation);
+		request.addMessageObserver(messageObserver);
+		// add notification listener to all notification
+		NotificationListener notificationListener = new Adapter(messageObserver, request);
+		outEndpoint.addNotificationListener(notificationListener);
+		// messageobserver should remove this listener when the request is cancelled
+		messageObserver.setNotificationListener(notificationListener);
+		relation.setNotificationListener(notificationListener);
 		send(request, outEndpoint);
 		return relation;
 	}
@@ -924,7 +943,62 @@ public class CoapClient {
 			return EndpointManager.getEndpointManager().getDefaultEndpoint();
 		}
 	}
-	
+
+	/*
+	 * Adapt MessageObserver for a given request in NotificationListener
+	 */
+	private class Adapter implements NotificationListener {
+		private MessageObserver obs;
+		private Request req;
+
+		public Adapter(MessageObserver observer, Request request) {
+			obs = observer;
+			req = request;
+		}
+
+		@Override
+		public void onRetransmission(Request request) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onRetransmission();
+			}
+		}
+
+		@Override
+		public void onResponse(Request request, Response response) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onResponse(response);
+			}
+		}
+
+		@Override
+		public void onAcknowledgement(Request request) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onAcknowledgement();
+			}
+		}
+
+		@Override
+		public void onReject(Request request) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onReject();
+			}
+		}
+
+		@Override
+		public void onTimeout(Request request) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onTimeout();
+			}
+		}
+
+		@Override
+		public void onCancel(Request request) {
+			if (Arrays.equals(request.getToken(), req.getToken())) {
+				obs.onCancel();
+			}
+		}
+	}
+
 	/**
 	 * The MessageObserverImpl is called when a response arrives. It wraps the
 	 * response into a CoapResponse and lets the executor invoke the handler's
@@ -1019,6 +1093,7 @@ public class CoapClient {
 		
 		/** The observer relation relation. */
 		private final CoapObserveRelation relation;
+		private NotificationListener notificationListener;
 		
 		/**
 		 * Constructs a new message observer with the specified handler and the
@@ -1032,6 +1107,13 @@ public class CoapClient {
 			this.relation = relation;
 		}
 		
+		/**
+		 * Set the current notificationListener associate to this relation as we need to remove it on cancel.
+		 */
+		public void setNotificationListener(NotificationListener notificationListener) {
+			this.notificationListener = notificationListener;
+		}
+
 		/**
 		 * Checks if the specified response truly is a new notification and if,
 		 * invokes the handler's method or drops the notification otherwise.
@@ -1057,6 +1139,7 @@ public class CoapClient {
 		 */
 		@Override protected void failed() {
 			relation.setCanceled(true);
+			// When relation is canceled remove the notification listener
 			super.failed();
 		}
 	}

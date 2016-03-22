@@ -50,12 +50,13 @@ import org.eclipse.californium.core.network.stack.BlockwiseLayer;
 import org.eclipse.californium.core.network.stack.CoapStack;
 import org.eclipse.californium.core.network.stack.ObserveLayer;
 import org.eclipse.californium.core.network.stack.ReliabilityLayer;
+import org.eclipse.californium.core.observe.InMemoryObserveRequestStore;
 import org.eclipse.californium.core.observe.NotificationListener;
 import org.eclipse.californium.core.observe.ObserveRequestStore;
 import org.eclipse.californium.core.server.MessageDeliverer;
 import org.eclipse.californium.elements.Connector;
-import org.eclipse.californium.elements.MessageCallback;
 import org.eclipse.californium.elements.CorrelationContext;
+import org.eclipse.californium.elements.MessageCallback;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.UDPConnector;
@@ -144,6 +145,9 @@ public class CoapEndpoint implements Endpoint {
 	/** The list of interceptors */
 	private List<MessageInterceptor> interceptors = new ArrayList<MessageInterceptor>(0);
 
+	/** The list of Notification listener (use for CoAP observer relations) */
+	private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(0);
+
 	/** The matcher which matches incoming responses, akcs and rsts an exchange */
 	private Matcher matcher;
 
@@ -204,18 +208,33 @@ public class CoapEndpoint implements Endpoint {
 	 * @param config the config
 	 */
 	public CoapEndpoint(Connector connector, NetworkConfig config) {
-		this(connector,config, null, null);
+		this(connector, config, null);
 	}
 
-	public CoapEndpoint(InetSocketAddress address, NetworkConfig config, NotificationListener notificationListener,
-			ObserveRequestStore store) {
-		this(createUDPConnector(address, config), config, notificationListener, store);
+	/**
+	 * Instantiates a new endpoint with the specified address and configuration
+	 * and observe request store (used to persist observation).
+	 *
+	 * @param connector the connector
+	 * @param config the config
+	 */
+	public CoapEndpoint(InetSocketAddress address, NetworkConfig config, ObserveRequestStore store) {
+		this(createUDPConnector(address, config), config, store);
 	}
 
-	public CoapEndpoint(Connector connector, NetworkConfig config,NotificationListener notificationListener, ObserveRequestStore store) {
+	/**
+	 * Instantiates a new endpoint with the specified connector and configuration
+	 * and observe request store (used to persist observation).
+	 *
+	 * @param connector the connector
+	 * @param config the config
+	 */
+	public CoapEndpoint(Connector connector, NetworkConfig config, ObserveRequestStore store) {
 		this.config = config;
 		this.connector = connector;
-		this.matcher = new Matcher(config, notificationListener, store);
+		if (store == null)
+			store = new InMemoryObserveRequestStore();
+		this.matcher = new Matcher(config, new NotificationDispatcher(), store);
 		this.coapstack = new CoapStack(config, new OutboxImpl());
 		this.connector.setRawDataReceiver(new InboxImpl());
 	}
@@ -355,6 +374,28 @@ public class CoapEndpoint implements Endpoint {
 		this.matcher.setExecutor(executor);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.californium.core.network.Endpoint#addNotificationListener(org.eclipse.californium.core.observe.NotificationListener)
+	 */
+	@Override
+	public void addNotificationListener(NotificationListener lis) {
+		notificationListeners.add(lis);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.californium.core.network.Endpoint#removeNotificationListener(org.eclipse.californium.core.observe.NotificationListener)
+	 */
+	@Override
+	public void removeNotificationListener(NotificationListener lis) {
+		notificationListeners.remove(lis);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#addObserver(org.eclipse.californium.core.network.EndpointObserver)
 	 */
@@ -458,6 +499,52 @@ public class CoapEndpoint implements Endpoint {
 	@Override
 	public NetworkConfig getConfig() {
 		return config;
+	}
+
+	private class NotificationDispatcher implements NotificationListener {
+
+		@Override
+		public void onRetransmission(Request request) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onRetransmission(request);
+			}
+		}
+
+		@Override
+		public void onResponse(Request request, Response response) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onResponse(request, response);
+			}
+		}
+
+		@Override
+		public void onAcknowledgement(Request request) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onAcknowledgement(request);
+			}
+		}
+
+		@Override
+		public void onReject(Request request) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onReject(request);
+			}
+		}
+
+		@Override
+		public void onTimeout(Request request) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onTimeout(request);
+			}
+		}
+
+		@Override
+		public void onCancel(Request request) {
+			for (NotificationListener notificationListener : new ArrayList<>(notificationListeners)) {
+				notificationListener.onCancel(request);
+			}
+		}
+
 	}
 
 	/**
@@ -705,6 +792,10 @@ public class CoapEndpoint implements Endpoint {
 				connector.send(Serializer.serialize(rst));
 		}
 
+	}
+
+	public void cancelObservation(byte[] token) {
+		matcher.cancelObserve(token);
 	}
 
 	/**

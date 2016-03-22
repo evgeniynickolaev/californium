@@ -54,6 +54,10 @@ public class InMemoryObserveRequestStore implements ObserveRequestStore {
 		return map.isEmpty();
 	}
 
+	public int getSize() {
+		return map.size();
+	}
+
 	public void clear() {
 		map.clear();
 	}

@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.californium.core.coap.MessageObserver;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.observe.NotificationListener;
 import org.eclipse.californium.core.observe.ObserveNotificationOrderer;
 
 /**
@@ -57,6 +58,8 @@ public class CoapObserveRelation {
 
 	/** The handle to re-register for Observe notifications */
 	private ScheduledFuture<?> reregistrationHandle = null;
+
+	private NotificationListener notificationListener;
 	
 	/**
 	 * Constructs a new CoapObserveRelation with the specified request.
@@ -124,6 +127,7 @@ public class CoapObserveRelation {
 		
 		// cancel old ongoing request
 		request.cancel();
+		endpoint.cancelObservation(request.getToken());
 		setCanceled(true);
 	}
 	
@@ -133,6 +137,7 @@ public class CoapObserveRelation {
 	 */
 	public void reactiveCancel() {
 		request.cancel();
+		endpoint.cancelObservation(request.getToken());
 		setCanceled(true);
 	}
 	
@@ -165,8 +170,16 @@ public class CoapObserveRelation {
 		if (this.canceled) {
 			setReregistrationHandle(null);
 		}
+
+		if (notificationListener != null) {
+			endpoint.removeNotificationListener(notificationListener);
+		}
 	}
 	
+	public void setNotificationListener(NotificationListener listener) {
+		notificationListener = listener;
+	}
+
 	/**
 	 * Sets the current notification.
 	 *

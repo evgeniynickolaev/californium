@@ -436,6 +436,8 @@ public class BlockwiseClientSideTest {
 		
 		Request request = createRequest(GET, path);
 		request.setObserve();
+		SynchronousNotificationListener notificationListener = new SynchronousNotificationListener(request);
+		client.addNotificationListener(notificationListener);
 		client.sendRequest(request);
 		
 		System.out.println("Establish observe relation to "+path);
@@ -469,7 +471,7 @@ public class BlockwiseClientSideTest {
 		server.expectRequest(CON, GET, path).storeBoth("E").noOption(OBSERVE).block2(2, false, 128).go();
 		server.sendResponse(ACK, CONTENT).loadBoth("E").block2(2, false, 128).payload(respPayload.substring(256, 280)).go();
 		
-		Response notification1 = request.waitForResponse(1000);
+		Response notification1 = notificationListener.waitForResponse(1000);
 		Assert.assertNotNull("Client did not receive first notification", notification1);
 		Assert.assertEquals("Client received wrong notification code:", CONTENT, notification1.getCode());
 		Assert.assertEquals("Client received wrong notification length", respPayload.length(), notification1.getPayloadSize());
@@ -501,7 +503,7 @@ public class BlockwiseClientSideTest {
 		server.expectRequest(CON, GET, path).storeBoth("H").noOption(OBSERVE).block2(2, false, 128).go();
 		server.sendResponse(ACK, CONTENT).loadBoth("H").block2(2, false, 128).payload(respPayload.substring(256, 290)).go();
 
-		Response notification2 = request.waitForResponse(1000);
+		Response notification2 = notificationListener.waitForResponse(1000);
 		Assert.assertNotNull("Client did not receive second notification", notification2);
 		Assert.assertEquals("Client received wrong notification code:", CONTENT, notification2.getCode());
 		Assert.assertEquals("Client received wrong notification length", respPayload.length(), notification2.getPayloadSize());

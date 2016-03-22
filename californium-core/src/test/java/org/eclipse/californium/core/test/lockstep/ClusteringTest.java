@@ -81,7 +81,8 @@ public class ClusteringTest {
 		store = new InMemoryObserveRequestStore();
 		notificationListener1 = new SynchronousNotificationListener();
 
-		client1 = new CoapEndpoint(new InetSocketAddress(0), config, notificationListener1, store);
+		client1 = new CoapEndpoint(new InetSocketAddress(0), config, store);
+		client1.addNotificationListener(notificationListener1);
 		client1.addInterceptor(clientInterceptor);
 		client1.addInterceptor(new MessageTracer());
 		client1.start();
@@ -89,7 +90,8 @@ public class ClusteringTest {
 		System.out.println("Client 1 binds to port " + clientPort1);
 
 		notificationListener2 = new SynchronousNotificationListener();
-		client2 = new CoapEndpoint(new InetSocketAddress(0), config, notificationListener2, store);
+		client2 = new CoapEndpoint(new InetSocketAddress(0), config, store);
+		client2.addNotificationListener(notificationListener2);
 		client2.addInterceptor(clientInterceptor);
 		client2.addInterceptor(new MessageTracer());
 		client2.start();
@@ -353,25 +355,6 @@ public class ClusteringTest {
 			return endpoint;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
-		}
-	}
-
-	private class SynchronousNotificationListener extends NotificationAdapter {
-		private CountDownLatch latch = new CountDownLatch(1);
-		private AtomicReference<Response> response = new AtomicReference<>();
-
-		@Override
-		public void onResponse(Request request, Response response) {
-			this.response.set(response);
-			latch.countDown();
-		}
-
-		public Response waitForResponse(long timeoutInMs) throws InterruptedException {
-			latch.await(timeoutInMs, TimeUnit.MILLISECONDS);
-			latch = new CountDownLatch(1);
-			Response result = response.get();
-			response.set(null);
-			return result;
 		}
 	}
 
