@@ -22,19 +22,17 @@ package org.eclipse.californium.core.test.lockstep;
 import static org.eclipse.californium.core.coap.CoAP.Code.GET;
 import static org.eclipse.californium.core.coap.CoAP.Code.POST;
 import static org.eclipse.californium.core.coap.CoAP.Code.PUT;
-import static org.eclipse.californium.core.coap.OptionNumberRegistry.OBSERVE;
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.CHANGED;
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.CONTENT;
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.CONTINUE;
 import static org.eclipse.californium.core.coap.CoAP.Type.ACK;
 import static org.eclipse.californium.core.coap.CoAP.Type.CON;
+import static org.eclipse.californium.core.coap.OptionNumberRegistry.OBSERVE;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Random;
-
-import org.junit.Assert;
 
 import org.eclipse.californium.core.coap.BlockOption;
 import org.eclipse.californium.core.coap.CoAP.Code;
@@ -44,6 +42,7 @@ import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -497,11 +496,12 @@ public class BlockwiseClientSideTest {
 		System.out.println("Send old notification during transfer");
 		server.sendResponse(CON, CONTENT).loadToken("At").mid(++mid).observe(18).block2(0, true, 128).payload(respPayload.substring(0, 128)).go();
 		server.expectEmpty(ACK, mid).go();
+		server.expectRequest(CON, GET, path).storeBoth("H").noOption(OBSERVE).block2(1, false, 128).go();
 		
 		server.sendResponse(ACK, CONTENT).loadBoth("G").block2(1, true, 128).payload(respPayload.substring(128, 256)).go();
 		
-		server.expectRequest(CON, GET, path).storeBoth("H").noOption(OBSERVE).block2(2, false, 128).go();
-		server.sendResponse(ACK, CONTENT).loadBoth("H").block2(2, false, 128).payload(respPayload.substring(256, 290)).go();
+		server.expectRequest(CON, GET, path).storeBoth("I").noOption(OBSERVE).block2(2, false, 128).go();
+		server.sendResponse(ACK, CONTENT).loadBoth("I").block2(2, false, 128).payload(respPayload.substring(256, 290)).go();
 
 		Response notification2 = notificationListener.waitForResponse(1000);
 		Assert.assertNotNull("Client did not receive second notification", notification2);

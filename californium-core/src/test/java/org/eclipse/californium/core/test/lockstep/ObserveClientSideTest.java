@@ -209,6 +209,7 @@ public class ObserveClientSideTest {
 		server.expectRequest(CON, GET, path).storeBoth("E").block2(2, false, 16).go();
 		server.sendResponse(ACK, CONTENT).loadBoth("E").block2(2, false, 16).payload(respPayload3.substring(32, 40)).go();
 		
+		Thread.sleep(50);
 		notification = notificationListener.waitForResponse(1000);
 		printServerLog();
 		
@@ -222,18 +223,24 @@ public class ObserveClientSideTest {
 		server.expectEmpty(ACK, mid).go();
 		server.expectRequest(CON, GET, path).storeBoth("F").block2(1, false, 16).go();
 		clientInterceptor.log("\n\n//////// Overriding notification 2 ////////");
+		// start new block
 		String respPayload4 = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMN";
 		server.sendResponse(CON, CONTENT).loadToken("T").mid(++mid).observe(5).block2(0, true, 16).payload(respPayload4.substring(0, 16)).go();
 		server.expectEmpty(ACK, mid).go();
+		server.expectRequest(CON, GET, path).storeBoth("G").block2(1, false, 16).go();
+
 		// old block
 		clientInterceptor.log("\n\n//////// Conflicting notification block ////////");
 		server.sendResponse(ACK, CONTENT).loadBoth("F").block2(1, true, 16).payload(respPayload.substring(16, 32)).go();
-		// new block
-		server.expectRequest(CON, GET, path).storeBoth("G").block2(1, false, 16).go();
-		server.sendResponse(ACK, CONTENT).loadBoth("G").block2(1, true, 16).payload(respPayload4.substring(16, 32)).go();
 		server.expectRequest(CON, GET, path).storeBoth("H").block2(2, false, 16).go();
-		server.sendResponse(ACK, CONTENT).loadBoth("H").block2(2, false, 16).payload(respPayload4.substring(32, 40)).go();
-		
+		server.sendResponse(ACK, CONTENT).loadBoth("F").block2(2, true, 16).payload(respPayload.substring(32, 40)).go();
+
+		// new block
+		server.sendResponse(ACK, CONTENT).loadBoth("G").block2(1, true, 16).payload(respPayload4.substring(16, 32)).go();
+		server.expectRequest(CON, GET, path).storeBoth("I").block2(2, false, 16).go();
+		server.sendResponse(ACK, CONTENT).loadBoth("I").block2(2, false, 16).payload(respPayload4.substring(32, 40)).go();
+
+		Thread.sleep(50);
 		notification = notificationListener.waitForResponse(1000);
 		printServerLog();
 		
