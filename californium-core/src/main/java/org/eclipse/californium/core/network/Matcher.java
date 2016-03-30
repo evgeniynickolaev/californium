@@ -23,7 +23,9 @@
  ******************************************************************************/
 package org.eclipse.californium.core.network;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -618,6 +620,13 @@ public class Matcher {
 	}
 
 	public void cancelObserve(byte[] token) {
+		// search for pending blockwise exchange for this observe request
+		for (Entry<KeyToken, Exchange> key : exchangesByToken.entrySet()) {
+			Request cachedRequest = key.getValue().getRequest();
+			if (cachedRequest != null && Arrays.equals(token, cachedRequest.getToken())) {
+				cachedRequest.cancel();
+			}
+		}
 		Request observeRequest = observeRequestStore.get(token);
 		if (observeRequest != null) {
 			observeRequestStore.remove(token);
