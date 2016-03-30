@@ -565,7 +565,7 @@ public class Matcher {
 			// random value
 			random.nextBytes(token);
 			result = new KeyToken(token);
-		} while (exchangesByToken.get(result) != null);
+		} while (exchangesByToken.get(result) != null && observeRequestStore.get(token) != null);
 
 		return result;
 	}
