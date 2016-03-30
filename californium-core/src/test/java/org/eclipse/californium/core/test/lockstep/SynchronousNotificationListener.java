@@ -26,7 +26,6 @@ public class SynchronousNotificationListener implements NotificationListener {
 	private Request request; // request to listen
 	private Response currentResponse;
 	private Object lock = new Object();
-	int i = 0;
 
 	public SynchronousNotificationListener() {
 	}
@@ -52,7 +51,6 @@ public class SynchronousNotificationListener implements NotificationListener {
 			}
 			currentResponse = null;
 		}
-		System.out.println("waitForResponse " + i + " " + r);
 		return r;
 	}
 
@@ -60,8 +58,6 @@ public class SynchronousNotificationListener implements NotificationListener {
 	public void onResponse(Request req, Response resp) {
 		if (request == null || Arrays.equals(request.getToken(), req.getToken())) {
 			synchronized (lock) {
-				i++;
-				System.out.println("notif " + i + " " + resp);
 				currentResponse = resp;
 				lock.notifyAll();
 			}
