@@ -14,12 +14,36 @@
 package org.eclipse.californium.core.observe;
 
 import org.eclipse.californium.core.coap.Request;
+import org.eclipse.californium.elements.CorrelationContext;
 
-public interface ObserveRequestStore {
+/**
+ * An observation initiated by a given request, for a particular correlation
+ * context.
+ */
+public class Observation {
 
-	void add(Request request);
-	
-	void remove(byte[] token);
+	private final Request request;
+	private final CorrelationContext context;
 
-	Request get(byte[] token);
+	public Observation(Request request, CorrelationContext context) {
+		this.request = request;
+		this.context = context;
+	}
+
+	/**
+	 * @return the request which initiated the observation
+	 */
+	public Request getRequest() {
+		return request;
+	}
+
+	/**
+	 * @return the correlation context for this observation
+	 */
+	public CorrelationContext getContext() {
+		return context;
+	}
+
+
+
 }

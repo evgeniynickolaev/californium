@@ -50,9 +50,9 @@ import org.eclipse.californium.core.network.stack.BlockwiseLayer;
 import org.eclipse.californium.core.network.stack.CoapStack;
 import org.eclipse.californium.core.network.stack.ObserveLayer;
 import org.eclipse.californium.core.network.stack.ReliabilityLayer;
-import org.eclipse.californium.core.observe.InMemoryObserveRequestStore;
+import org.eclipse.californium.core.observe.InMemoryObservationStore;
 import org.eclipse.californium.core.observe.NotificationListener;
-import org.eclipse.californium.core.observe.ObserveRequestStore;
+import org.eclipse.californium.core.observe.ObservationStore;
 import org.eclipse.californium.core.server.MessageDeliverer;
 import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.CorrelationContext;
@@ -218,7 +218,7 @@ public class CoapEndpoint implements Endpoint {
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public CoapEndpoint(InetSocketAddress address, NetworkConfig config, ObserveRequestStore store) {
+	public CoapEndpoint(InetSocketAddress address, NetworkConfig config, ObservationStore store) {
 		this(createUDPConnector(address, config), config, store);
 	}
 
@@ -229,11 +229,11 @@ public class CoapEndpoint implements Endpoint {
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public CoapEndpoint(Connector connector, NetworkConfig config, ObserveRequestStore store) {
+	public CoapEndpoint(Connector connector, NetworkConfig config, ObservationStore store) {
 		this.config = config;
 		this.connector = connector;
 		if (store == null)
-			store = new InMemoryObserveRequestStore();
+			store = new InMemoryObservationStore();
 		this.matcher = new Matcher(config, new NotificationDispatcher(), store);
 		this.coapstack = new CoapStack(config, new OutboxImpl());
 		this.connector.setRawDataReceiver(new InboxImpl());

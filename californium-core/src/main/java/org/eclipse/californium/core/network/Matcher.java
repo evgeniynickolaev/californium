@@ -49,10 +49,11 @@ import org.eclipse.californium.core.network.Exchange.Origin;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.deduplication.Deduplicator;
 import org.eclipse.californium.core.network.deduplication.DeduplicatorFactory;
-import org.eclipse.californium.core.observe.InMemoryObserveRequestStore;
+import org.eclipse.californium.core.observe.InMemoryObservationStore;
 import org.eclipse.californium.core.observe.NotificationListener;
+import org.eclipse.californium.core.observe.Observation;
+import org.eclipse.californium.core.observe.ObservationStore;
 import org.eclipse.californium.core.observe.ObserveRelation;
-import org.eclipse.californium.core.observe.ObserveRequestStore;
 import org.eclipse.californium.elements.CorrelationContext;
 import org.eclipse.californium.elements.DtlsCorrelationContext;
 
@@ -87,16 +88,16 @@ public class Matcher {
 	private boolean useStrictResponseMatching = false;
 
 	private NotificationListener notificationListener;
-	private final ObserveRequestStore observeRequestStore;
+	private final ObservationStore observationStore;
 
 	public Matcher(NetworkConfig config){
-		this(config, null, new InMemoryObserveRequestStore());
+		this(config, null, new InMemoryObservationStore());
 	}	
 
-	public Matcher(NetworkConfig config, NotificationListener notificationListener,ObserveRequestStore observeRequestStore) {
+	public Matcher(NetworkConfig config, NotificationListener notificationListener, ObservationStore observationStore) {
 		this.started = false;
 		this.notificationListener = notificationListener;
-		this.observeRequestStore = observeRequestStore;
+		this.observationStore = observationStore;
 		this.exchangesByMID = new ConcurrentHashMap<KeyMID, Exchange>();
 		this.exchangesByToken = new ConcurrentHashMap<KeyToken, Exchange>();
 		this.ongoingExchanges = new ConcurrentHashMap<KeyUri, Exchange>();
@@ -191,20 +192,20 @@ public class Matcher {
 		// for observe request
 		if ( request.getOptions().hasObserve() && request.getOptions().getObserve() == 0 && !request.getOptions().hasBlock2()) {
 			// add request to the store
-			observeRequestStore.add(request);
+			observationStore.add(new Observation(request, null));
 			// remove it if the request is cancelled, rejected or timedout
 			request.addMessageObserver(new MessageObserverAdapter() {
 				@Override
 				public void onCancel() {
-					observeRequestStore.remove(request.getToken());
+					observationStore.remove(request.getToken());
 				}
 				@Override
 				public void onReject() {
-					observeRequestStore.remove(request.getToken());
+					observationStore.remove(request.getToken());
 				}
 				@Override
 				public void onTimeout() {
-					observeRequestStore.remove(request.getToken());
+					observationStore.remove(request.getToken());
 				}
 			});
 		}
@@ -384,19 +385,20 @@ public class Matcher {
 		KeyToken idByToken = new KeyToken(response.getToken());
 
 		Exchange exchange = exchangesByToken.get(idByToken);
-		if (exchange == null && observeRequestStore != null ) {
-			final Request request = observeRequestStore.get(response.getToken());
-			if (request != null){
+		if (exchange == null && observationStore != null ) {
+			final Observation obs = observationStore.get(response.getToken());
+			if (obs != null) {
+				final Request request = obs.getRequest();
 				request.setDestination(response.getSource());
 				request.setDestinationPort(response.getSourcePort());
-				exchange = new Exchange(request, Origin.LOCAL);
+				exchange = new Exchange(request, Origin.LOCAL, obs.getContext());
 				exchange.setRequest(request);
 				exchange.setObserver(exchangeObserver);
 				request.addMessageObserver(new MessageObserver() {
 					@Override
 					public void onTimeout() {
 						notificationListener.onTimeout(request);
-						observeRequestStore.remove(request.getToken());
+						observationStore.remove(request.getToken());
 					}
 
 					@Override
@@ -412,13 +414,13 @@ public class Matcher {
 					@Override
 					public void onReject() {
 						notificationListener.onReject(request);
-						observeRequestStore.remove(request.getToken());
+						observationStore.remove(request.getToken());
 					}
 
 					@Override
 					public void onCancel() {
 						notificationListener.onCancel(request);
-						observeRequestStore.remove(request.getToken());
+						observationStore.remove(request.getToken());
 					}
 
 					@Override
@@ -565,7 +567,7 @@ public class Matcher {
 			// random value
 			random.nextBytes(token);
 			result = new KeyToken(token);
-		} while (exchangesByToken.get(result) != null && observeRequestStore.get(token) != null);
+		} while (exchangesByToken.get(result) != null && observationStore.get(token) != null);
 
 		return result;
 	}
@@ -617,6 +619,12 @@ public class Matcher {
 				}
 			}
 		}
+
+		@Override
+		public void contextEstablised(Exchange exchange) {
+			if (exchange.getRequest() != null)
+				observationStore.setContext(exchange.getRequest().getToken(), exchange.getCorrelationContext());
+		}
 	}
 
 	public void cancelObserve(byte[] token) {
@@ -627,10 +635,10 @@ public class Matcher {
 				cachedRequest.cancel();
 			}
 		}
-		Request observeRequest = observeRequestStore.get(token);
-		if (observeRequest != null) {
-			observeRequestStore.remove(token);
-			notificationListener.onCancel(observeRequest);
+		Observation observation = observationStore.get(token);
+		if (observation != null) {
+			observationStore.remove(token);
+			notificationListener.onCancel(observation.getRequest());
 		}
 	}
 

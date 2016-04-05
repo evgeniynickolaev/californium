@@ -34,7 +34,7 @@ import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
-import org.eclipse.californium.core.observe.InMemoryObserveRequestStore;
+import org.eclipse.californium.core.observe.InMemoryObservationStore;
 import org.eclipse.californium.core.observe.NotificationAdapter;
 import org.junit.After;
 import org.junit.Assert;
@@ -60,7 +60,7 @@ public class ClusteringTest {
 
 	private int clientPort2;
 
-	private InMemoryObserveRequestStore store;
+	private InMemoryObservationStore store;
 
 	private SynchronousNotificationListener notificationListener1;
 
@@ -78,7 +78,7 @@ public class ClusteringTest {
 																													// ms
 				.setFloat(NetworkConfig.Keys.ACK_RANDOM_FACTOR, 1f).setFloat(NetworkConfig.Keys.ACK_TIMEOUT_SCALE, 1f);
 
-		store = new InMemoryObserveRequestStore();
+		store = new InMemoryObservationStore();
 		notificationListener1 = new SynchronousNotificationListener();
 
 		client1 = new CoapEndpoint(new InetSocketAddress(0), config, store);

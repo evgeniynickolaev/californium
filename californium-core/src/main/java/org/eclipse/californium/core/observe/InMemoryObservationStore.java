@@ -20,27 +20,28 @@ import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.network.Exchange.KeyToken;
 import org.eclipse.californium.core.network.serialization.DataParser;
 import org.eclipse.californium.core.network.serialization.Serializer;
+import org.eclipse.californium.elements.CorrelationContext;
 import org.eclipse.californium.elements.RawData;
 
-public class InMemoryObserveRequestStore implements ObserveRequestStore {
+public class InMemoryObservationStore implements ObservationStore {
 
-	private Map<KeyToken, Request> map = new ConcurrentHashMap<>();
+	private Map<KeyToken, Observation> map = new ConcurrentHashMap<>();
 
 	@Override
-	public void add(Request request) {
-		if (request != null) {
-			map.put(new KeyToken(request.getToken()), request);
+	public void add(Observation obs) {
+		if (obs != null) {
+			map.put(new KeyToken(obs.getRequest().getToken()), obs);
 		}
 	}
 
 	@Override
-	public Request get(byte[] token) {
-		Request request = map.get(new KeyToken(token));
-		if (request != null) {
-			RawData serialize = Serializer.serialize(request, null);
+	public Observation get(byte[] token) {
+		Observation obs = map.get(new KeyToken(token));
+		if (obs != null) {
+			RawData serialize = Serializer.serialize(obs.getRequest(), null);
 			DataParser parser = new DataParser(serialize.getBytes());
 			Request newRequest = parser.parseRequest();
-			return newRequest;
+			return new Observation(newRequest, obs.getContext());
 		}
 		return null;
 	}
@@ -60,5 +61,13 @@ public class InMemoryObserveRequestStore implements ObserveRequestStore {
 
 	public void clear() {
 		map.clear();
+	}
+
+	@Override
+	public void setContext(byte[] token, CorrelationContext ctx) {
+		Observation obs = map.get(new KeyToken(token));
+		if (obs != null) {
+			map.put(new KeyToken(token), new Observation(obs.getRequest(), ctx));
+		}
 	}
 }

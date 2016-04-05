@@ -16,7 +16,7 @@ import org.eclipse.californium.core.network.Exchange.KeyUri;
 import org.eclipse.californium.core.network.Matcher;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.deduplication.SweepDeduplicator;
-import org.eclipse.californium.core.observe.InMemoryObserveRequestStore;
+import org.eclipse.californium.core.observe.InMemoryObservationStore;
 import org.eclipse.californium.core.observe.NotificationListener;
 import org.junit.Assert;
 
@@ -30,7 +30,7 @@ public class EndpointSurveillant {
 	private ConcurrentHashMap<KeyToken, Exchange> exchangesByToken; // Outgoing to match with inc responses
 	private ConcurrentHashMap<KeyUri, Exchange> ongoingExchanges; // for blockwise
 	private ConcurrentHashMap<KeyMID, Exchange> incommingMessages; // for deduplication
-	private InMemoryObserveRequestStore observeRequestStore; // for observe
+	private InMemoryObservationStore observeRequestStore; // for observe
 	private List<NotificationListener> notificationListeners; // for observe too
 
 	private int exchangeLifecycle;
@@ -51,7 +51,7 @@ public class EndpointSurveillant {
 		exchangesByMID = extractField(matcher, "exchangesByMID");
 		exchangesByToken = extractField(matcher, "exchangesByToken");
 		ongoingExchanges = extractField(matcher, "ongoingExchanges");
-		observeRequestStore = extractField(matcher, "observeRequestStore");
+		observeRequestStore = extractField(matcher, "observationStore");
 		notificationListeners = extractField(endpoint, "notificationListeners");
 
 		SweepDeduplicator deduplicator = extractField(matcher, "deduplicator");
