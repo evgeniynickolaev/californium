@@ -39,6 +39,6 @@ public interface ExchangeObserver {
 	 * 
 	 * @param exchange the exchange
 	 */
-	public void contextEstablised(Exchange exchange);
+	public void contextEstablished(Exchange exchange);
 
 }

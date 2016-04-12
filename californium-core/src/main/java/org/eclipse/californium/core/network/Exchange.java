@@ -530,7 +530,7 @@ public class Exchange {
 		correlationContext = ctx;
 		ExchangeObserver obs = this.observer;
 		if (obs != null)
-			obs.contextEstablised(this);
+			obs.contextEstablished(this);
 	}
 
 	/**

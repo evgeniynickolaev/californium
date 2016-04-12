@@ -425,7 +425,7 @@ public class Matcher {
 
 					@Override
 					public void onAcknowledgement() {
-						notificationListener.onCancel(request);
+						notificationListener.onAcknowledgement(request);
 					}
 				});
 			}
@@ -621,7 +621,7 @@ public class Matcher {
 		}
 
 		@Override
-		public void contextEstablised(Exchange exchange) {
+		public void contextEstablished(Exchange exchange) {
 			if (exchange.getRequest() != null)
 				observationStore.setContext(exchange.getRequest().getToken(), exchange.getCorrelationContext());
 		}

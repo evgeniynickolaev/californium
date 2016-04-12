@@ -232,9 +232,11 @@ public class CoapEndpoint implements Endpoint {
 	public CoapEndpoint(Connector connector, NetworkConfig config, ObservationStore store) {
 		this.config = config;
 		this.connector = connector;
-		if (store == null)
-			store = new InMemoryObservationStore();
-		this.matcher = new Matcher(config, new NotificationDispatcher(), store);
+		if (store == null) {
+			this.matcher = new Matcher(config, new NotificationDispatcher(), new InMemoryObservationStore());
+		} else {
+			this.matcher = new Matcher(config, new NotificationDispatcher(), store);
+		}
 		this.coapstack = new CoapStack(config, new OutboxImpl());
 		this.connector.setRawDataReceiver(new InboxImpl());
 	}
