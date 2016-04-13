@@ -189,8 +189,10 @@ public class Matcher {
 			}
 		}
 
-		// for observe request
-		if ( request.getOptions().hasObserve() && request.getOptions().getObserve() == 0 && !request.getOptions().hasBlock2()) {
+		// for observe request.
+		// We ignore blockwise request, except when this is an early negociation (num and M is set to 0)  
+		if (request.getOptions().hasObserve() && request.getOptions().getObserve() == 0 && (!request.getOptions().hasBlock2()
+				|| request.getOptions().getBlock2().getNum() == 0 && !request.getOptions().getBlock2().isM())) {
 			// add request to the store
 			observationStore.add(new Observation(request, null));
 			// remove it if the request is cancelled, rejected or timedout
