@@ -855,8 +855,7 @@ public class CoapClient {
 		// add notification listener to all notification
 		NotificationListener notificationListener = new Adapter(messageObserver, request);
 		outEndpoint.addNotificationListener(notificationListener);
-		// messageobserver should remove this listener when the request is cancelled
-		messageObserver.setNotificationListener(notificationListener);
+		// relation should remove this listener when the request is cancelled
 		relation.setNotificationListener(notificationListener);
 		CoapResponse response = synchronous(request, outEndpoint);
 		if (response == null || !response.advanced().getOptions().hasObserve())
@@ -882,8 +881,7 @@ public class CoapClient {
 		// add notification listener to all notification
 		NotificationListener notificationListener = new Adapter(messageObserver, request);
 		outEndpoint.addNotificationListener(notificationListener);
-		// messageobserver should remove this listener when the request is cancelled
-		messageObserver.setNotificationListener(notificationListener);
+		// relation should remove this listener when the request is cancelled
 		relation.setNotificationListener(notificationListener);
 		send(request, outEndpoint);
 		return relation;
@@ -1093,7 +1091,6 @@ public class CoapClient {
 		
 		/** The observer relation relation. */
 		private final CoapObserveRelation relation;
-		private NotificationListener notificationListener;
 		
 		/**
 		 * Constructs a new message observer with the specified handler and the
@@ -1105,13 +1102,6 @@ public class CoapClient {
 		public ObserveMessageObserverImpl(CoapHandler handler, CoapObserveRelation relation) {
 			super(handler);
 			this.relation = relation;
-		}
-		
-		/**
-		 * Set the current notificationListener associate to this relation as we need to remove it on cancel.
-		 */
-		public void setNotificationListener(NotificationListener notificationListener) {
-			this.notificationListener = notificationListener;
 		}
 
 		/**
@@ -1138,8 +1128,8 @@ public class CoapClient {
 		 * method.
 		 */
 		@Override protected void failed() {
-			relation.setCanceled(true);
 			// When relation is canceled remove the notification listener
+			relation.setCanceled(true);
 			super.failed();
 		}
 	}
