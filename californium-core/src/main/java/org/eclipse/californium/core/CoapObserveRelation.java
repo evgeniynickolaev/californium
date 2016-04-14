@@ -169,10 +169,10 @@ public class CoapObserveRelation {
 		
 		if (this.canceled) {
 			setReregistrationHandle(null);
-		}
 
-		if (this.canceled && notificationListener != null) {
-			endpoint.removeNotificationListener(notificationListener);
+			if (notificationListener != null) {
+				endpoint.removeNotificationListener(notificationListener);
+			}
 		}
 	}
 	
